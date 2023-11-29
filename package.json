@@ -1,0 +1,30 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Server component of csp",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start_list": "functions-framework --target=list",
+    "start_search": "functions-framework --target=search",
+    "start_detail": "functions-framework --target=detail",
+    "test": "mocha test/index.test.js",
+    "deploy_list": "gcloud functions deploy list --runtime nodejs20 --trigger-http --allow-unauthenticated --docker-registry=artifact-registry",
+    "deploy_search": "gcloud functions deploy search --runtime nodejs20 --trigger-http --allow-unauthenticated --docker-registry=artifact-registry",
+    "deploy_detail": "gcloud functions deploy detail --runtime nodejs20 --trigger-http --allow-unauthenticated --docker-registry=artifact-registry"
+  },
+  "keywords": [
+    "nodejs",
+    "google-cloud-functions"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/bigquery": "^7.3.0",
+    "@google-cloud/functions-framework": "^3.1.0",
+    "firebase-functions": "^4.5.0"
+  },
+  "devDependencies": {
+    "mocha": "^8.2.1"
+  }
+}
