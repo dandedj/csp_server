@@ -10,9 +10,24 @@ const detail = async (req, res) => {
 
     try {
         // Get the ID from either path parameter or query parameter
-        const id = req.params.id || req.query.id;
+        // For Google Cloud Functions, path parameters need to be extracted from the URL
+        let id = req.query.id;
         
-        if (!id) {
+        // If no query parameter, try to extract from URL path
+        if (!id && req.url) {
+            const urlParts = req.url.split('/');
+            // Look for ID in URL path (e.g., /detail/abc123 or /abc123)
+            if (urlParts.length > 1) {
+                // Get the last non-empty part of the URL
+                id = urlParts[urlParts.length - 1];
+                // Remove query string if present
+                if (id.includes('?')) {
+                    id = id.split('?')[0];
+                }
+            }
+        }
+        
+        if (!id || id === 'detail') {
             return res.status(400).json({ error: 'Plaque ID is required' });
         }
 
