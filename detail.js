@@ -61,48 +61,49 @@ async function queryPlaqueById(id) {
         }
         
         console.log(`Found plaque data:`, rows[0]);
+        
+        // Format the result consistently with other endpoints
+        const formattedPlaques = rows.map(row => ({
+            id: row.id,
+            text: row.plaque_text || "No text available",
+            confidence: row.confidence || 0,
+            location: {
+                latitude: row.latitude,
+                longitude: row.longitude,
+                confidence: row.location_confidence
+            },
+            photo: {
+                id: row.photo_id,
+                url: row.image_url,
+                camera_position: {
+                    latitude: row.camera_latitude,
+                    longitude: row.camera_longitude,
+                    bearing: row.camera_bearing
+                }
+            },
+            position_in_image: {
+                x: row.position_x,
+                y: row.position_y
+            },
+            estimated_distance: row.estimated_distance,
+            offset_direction: row.offset_direction,
+            // Add cropping coordinates if available
+            cropping_coordinates: row.cropping_x !== null && row.cropping_y !== null && 
+                                 row.cropping_width !== null && row.cropping_height !== null ? {
+                x: row.cropping_x,
+                y: row.cropping_y,
+                width: row.cropping_width,
+                height: row.cropping_height
+            } : null
+        }));
+        
+        // Enhance with multiple image URLs
+        return formattedPlaques.map(enhancePlaqueWithMultipleImageUrls);
+        
     } catch (error) {
         console.error('Error querying BigQuery:', error);
         throw error;
     }
-    
-    // Format the result consistently with other endpoints
-    const formattedPlaques = rows.map(row => ({
-        id: row.id,
-        text: row.plaque_text || "No text available",
-        confidence: row.confidence || 0,
-        location: {
-            latitude: row.latitude,
-            longitude: row.longitude,
-            confidence: row.location_confidence
-        },
-        photo: {
-            id: row.photo_id,
-            url: row.image_url,
-            camera_position: {
-                latitude: row.camera_latitude,
-                longitude: row.camera_longitude,
-                bearing: row.camera_bearing
-            }
-        },
-        position_in_image: {
-            x: row.position_x,
-            y: row.position_y
-        },
-        estimated_distance: row.estimated_distance,
-        offset_direction: row.offset_direction,
-        // Add cropping coordinates if available
-        cropping_coordinates: row.cropping_x !== null && row.cropping_y !== null && 
-                             row.cropping_width !== null && row.cropping_height !== null ? {
-            x: row.cropping_x,
-            y: row.cropping_y,
-            width: row.cropping_width,
-            height: row.cropping_height
-        } : null
-    }));
-    
-    // Enhance with multiple image URLs
-    return formattedPlaques.map(enhancePlaqueWithMultipleImageUrls);
 }
 
 module.exports = {

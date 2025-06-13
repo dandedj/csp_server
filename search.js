@@ -125,7 +125,11 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
                 position_x,
                 position_y,
                 estimated_distance,
-                offset_direction
+                offset_direction,
+                cropping_x,
+                cropping_y,
+                cropping_width,
+                cropping_height
             FROM 
                 \`${config.tableName}\`
             WHERE 
@@ -187,7 +191,15 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
                     y: row.position_y
                 },
                 estimated_distance: row.estimated_distance,
-                offset_direction: row.offset_direction
+                offset_direction: row.offset_direction,
+                // Add cropping coordinates if available
+                cropping_coordinates: row.cropping_x !== null && row.cropping_y !== null && 
+                                     row.cropping_width !== null && row.cropping_height !== null ? {
+                    x: row.cropping_x,
+                    y: row.cropping_y,
+                    width: row.cropping_width,
+                    height: row.cropping_height
+                } : null
             };
         });
         

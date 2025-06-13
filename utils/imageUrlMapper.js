@@ -69,7 +69,12 @@ function generateMultipleSizeUrls(originalUrl) {
 
   // Generate URLs based on the pattern used by our image resizer
   const baseUrl = 'https://storage.googleapis.com/csp-bucket/images/';
-  const baseFilename = filename.replace(/\.(jpeg|jpg|png)$/i, '');
+  
+  // Extract the base filename without any size suffixes
+  let baseFilename = filename.replace(/\.(jpeg|jpg|png)$/i, '');
+  
+  // Remove any existing size suffixes to avoid double-suffixing
+  baseFilename = baseFilename.replace(/_(small|medium|large)$/, '');
   
   return {
     small: `${baseUrl}small/${baseFilename}_small.jpg`,
