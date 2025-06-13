@@ -3,6 +3,7 @@ const { BigQuery } = require('@google-cloud/bigquery');
 const bigquery = new BigQuery();
 const CloudFunctionUtils = require('./CloudFunctionUtils');
 const config = require('./config');
+const { enhancePlaquesWithMultipleImageUrls } = require('./utils/imageUrlMapper');
 
 const search = async (req, res) => {
     CloudFunctionUtils.setCorsHeaders(req, res);
@@ -190,8 +191,11 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
             };
         });
         
+        // Enhance plaques with multiple image URLs
+        const enhancedPlaques = enhancePlaquesWithMultipleImageUrls(plaques);
+        
         return { 
-            plaques,
+            plaques: enhancedPlaques,
             totalCount 
         };
     } catch (error) {

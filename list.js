@@ -3,6 +3,7 @@ const { BigQuery } = require('@google-cloud/bigquery');
 const bigquery = new BigQuery();
 const CloudFunctionUtils = require('./CloudFunctionUtils');
 const config = require('./config');
+const { enhancePlaquesWithMultipleImageUrls } = require('./utils/imageUrlMapper');
 
 const list = async (req, res) => {
     CloudFunctionUtils.setCorsHeaders(req, res);
@@ -112,6 +113,9 @@ async function queryAllPlaques(req) {
         offset_direction: row.offset_direction
     }));
     
+    // Enhance plaques with multiple image URLs
+    const enhancedPlaques = enhancePlaquesWithMultipleImageUrls(formattedRows);
+    
     // Get total count for pagination info
     const countQuery = `SELECT COUNT(*) as total FROM \`${config.tableName}\` ${whereClause}`;
     const countOptions = {
@@ -123,7 +127,7 @@ async function queryAllPlaques(req) {
     const total = countResult[0].total;
     
     return {
-        plaques: formattedRows,
+        plaques: enhancedPlaques,
         total_count: total,
         page: Math.floor(offset / limit) + 1,
         limit: limit,
