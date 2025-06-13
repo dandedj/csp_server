@@ -8,29 +8,47 @@ const { enhancePlaqueWithMultipleImageUrls } = require('./utils/imageUrlMapper')
 const detail = async (req, res) => {
     CloudFunctionUtils.setCorsHeaders(req, res);
 
-    // get the text from the query string
-    const id = req.query.id;
+    try {
+        // Get the ID from either path parameter or query parameter
+        const id = req.params.id || req.query.id;
+        
+        if (!id) {
+            return res.status(400).json({ error: 'Plaque ID is required' });
+        }
 
-    const plaques = await queryPlaqueById(id);
+        console.log(`Fetching plaque with ID: ${id}`);
+        const plaques = await queryPlaqueById(id);
 
-    // return the plaques as a response
-    // log the plaques to the console
-    console.log(plaques);
-    res.json(plaques);
+        // return the plaques as a response
+        console.log(`Found ${plaques.length} plaques for ID: ${id}`);
+        res.json(plaques);
+    } catch (error) {
+        console.error('Error in detail endpoint:', error);
+        res.status(500).json({ error: 'Internal server error', message: error.message });
+    }
 };
 
 async function queryPlaqueById(id) {
-    const queryOptions = {
-        query: `SELECT * FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
-        params: {
-            id: id
+    try {
+        const queryOptions = {
+            query: `SELECT * FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
+            params: {
+                id: id
+            }
+        };
+        
+        console.log(`Executing BigQuery: ${queryOptions.query} with id: ${id}`);
+        const [rows] = await bigquery.query(queryOptions);
+        
+        if (!rows || rows.length === 0) {
+            console.log(`No plaque found with ID: ${id}`);
+            return [];
         }
-    };
-    
-    const [rows] = await bigquery.query(queryOptions);
-    
-    if (!rows || rows.length === 0) {
-        return rows;
+        
+        console.log(`Found plaque data:`, rows[0]);
+    } catch (error) {
+        console.error('Error querying BigQuery:', error);
+        throw error;
     }
     
     // Format the result consistently with other endpoints
@@ -57,7 +75,15 @@ async function queryPlaqueById(id) {
             y: row.position_y
         },
         estimated_distance: row.estimated_distance,
-        offset_direction: row.offset_direction
+        offset_direction: row.offset_direction,
+        // Add cropping coordinates if available
+        cropping_coordinates: row.cropping_x !== null && row.cropping_y !== null && 
+                             row.cropping_width !== null && row.cropping_height !== null ? {
+            x: row.cropping_x,
+            y: row.cropping_y,
+            width: row.cropping_width,
+            height: row.cropping_height
+        } : null
     }));
     
     // Enhance with multiple image URLs
