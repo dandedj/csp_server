@@ -19,13 +19,17 @@ const detail = async (req, res) => {
 };
 
 async function queryPlaqueById(id) {
-    const plaques = await bigquery.query({
-        query: `SELECT * FROM \`${config.tableName}\` WHERE id = '${id}' LIMIT 1`
-    });
-
-    return plaques[0];
+    const queryOptions = {
+        query: `SELECT * FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
+        params: {
+            id: id
+        }
+    };
+    
+    const [rows] = await bigquery.query(queryOptions);
+    return rows;
 }
 
-module.exports = functions.https.onRequest(detail); module.exports = {
+module.exports = {
     detail: functions.https.onRequest(detail),
 };

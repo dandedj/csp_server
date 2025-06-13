@@ -2,17 +2,23 @@
 class CloudFunctionUtils {
     // Set CORS headers for the request
     static setCorsHeaders(req, res) {
-        res.set('Access-Control-Allow-Origin', '*');
+        // Allow requests from specific origins
+        const allowedOrigins = ['https://csp-plaques.web.app', 'http://localhost:3000', 'http://localhost:5000'];
+        const origin = req.headers.origin;
+        
+        if (allowedOrigins.includes(origin)) {
+            res.set('Access-Control-Allow-Origin', origin);
+        } else {
+            // For development purposes, you can keep the wildcard
+            res.set('Access-Control-Allow-Origin', '*');
+        }
+        
         if (req.method === 'OPTIONS') {
             // Send response to OPTIONS requests
             res.set('Access-Control-Allow-Methods', 'GET, POST');
             res.set('Access-Control-Allow-Headers', 'Content-Type');
             res.set('Access-Control-Max-Age', '3600');
             res.status(204).send('');
-        }
-        else {
-            // Set CORS headers for the main request
-            res.set('Access-Control-Allow-Origin', '*');
         }
     };
 }
