@@ -118,6 +118,8 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
                 longitude, 
                 location_confidence,
                 image_url,
+                cropped_image_url,
+                original_image_url,
                 photo_id,
                 camera_latitude,
                 camera_longitude,
@@ -129,7 +131,21 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
                 cropping_x,
                 cropping_y,
                 cropping_width,
-                cropping_height
+                cropping_height,
+                extractor_type,
+                confidence_level,
+                agreement_count,
+                total_services,
+                services_agreed,
+                claude_text,
+                claude_confidence,
+                claude_result,
+                openai_text,
+                openai_confidence,
+                openai_result,
+                gemini_text,
+                gemini_confidence,
+                gemini_result
             FROM 
                 \`${config.tableName}\`
             WHERE 
@@ -179,7 +195,9 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
                 },
                 photo: {
                     id: row.photo_id,
-                    url: row.image_url,
+                    url: row.cropped_image_url || row.image_url,
+                    cropped_url: row.cropped_image_url,
+                    original_url: row.original_image_url || row.image_url,
                     camera_position: {
                         latitude: row.camera_latitude,
                         longitude: row.camera_longitude,
@@ -199,7 +217,42 @@ async function queryPlaquesWithText(query, confidenceThreshold, limit = 100, off
                     y: row.cropping_y,
                     width: row.cropping_width,
                     height: row.cropping_height
-                } : null
+                } : null,
+                
+                // Add extractor metadata
+                extractor_type: row.extractor_type,
+                confidence_level: row.confidence_level,
+                agreement_count: row.agreement_count,
+                total_services: row.total_services,
+                services_agreed: row.services_agreed ? row.services_agreed.split(',') : null,
+                
+                // Add individual extractor results
+                individual_extractions: {
+                    claude: {
+                        text: row.claude_text,
+                        confidence: row.claude_confidence,
+                        raw_result: row.claude_result ? (() => {
+                            try { return JSON.parse(row.claude_result); } 
+                            catch(e) { return null; }
+                        })() : null
+                    },
+                    openai: {
+                        text: row.openai_text,
+                        confidence: row.openai_confidence,
+                        raw_result: row.openai_result ? (() => {
+                            try { return JSON.parse(row.openai_result); } 
+                            catch(e) { return null; }
+                        })() : null
+                    },
+                    gemini: {
+                        text: row.gemini_text,
+                        confidence: row.gemini_confidence,
+                        raw_result: row.gemini_result ? (() => {
+                            try { return JSON.parse(row.gemini_result); } 
+                            catch(e) { return null; }
+                        })() : null
+                    }
+                }
             };
         });
         

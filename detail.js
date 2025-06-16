@@ -46,7 +46,7 @@ const detail = async (req, res) => {
 async function queryPlaqueById(id) {
     try {
         const queryOptions = {
-            query: `SELECT * FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
+            query: `SELECT *, cropped_image_url, original_image_url FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
             params: {
                 id: id
             }
@@ -74,7 +74,9 @@ async function queryPlaqueById(id) {
             },
             photo: {
                 id: row.photo_id,
-                url: row.image_url,
+                url: row.cropped_image_url || row.image_url,
+                cropped_url: row.cropped_image_url,
+                original_url: row.original_image_url || row.image_url,
                 camera_position: {
                     latitude: row.camera_latitude,
                     longitude: row.camera_longitude,
@@ -94,7 +96,42 @@ async function queryPlaqueById(id) {
                 y: row.cropping_y,
                 width: row.cropping_width,
                 height: row.cropping_height
-            } : null
+            } : null,
+            
+            // Add extractor metadata
+            extractor_type: row.extractor_type,
+            confidence_level: row.confidence_level,
+            agreement_count: row.agreement_count,
+            total_services: row.total_services,
+            services_agreed: row.services_agreed ? row.services_agreed.split(',') : null,
+            
+            // Add individual extractor results
+            individual_extractions: {
+                claude: {
+                    text: row.claude_text,
+                    confidence: row.claude_confidence,
+                    raw_result: row.claude_result ? (() => {
+                        try { return JSON.parse(row.claude_result); } 
+                        catch(e) { return null; }
+                    })() : null
+                },
+                openai: {
+                    text: row.openai_text,
+                    confidence: row.openai_confidence,
+                    raw_result: row.openai_result ? (() => {
+                        try { return JSON.parse(row.openai_result); } 
+                        catch(e) { return null; }
+                    })() : null
+                },
+                gemini: {
+                    text: row.gemini_text,
+                    confidence: row.gemini_confidence,
+                    raw_result: row.gemini_result ? (() => {
+                        try { return JSON.parse(row.gemini_result); } 
+                        catch(e) { return null; }
+                    })() : null
+                }
+            }
         }));
         
         // Enhance with multiple image URLs

@@ -67,7 +67,17 @@ function generateMultipleSizeUrls(originalUrl) {
     return IMAGE_URL_MAPPING[filename];
   }
 
-  // Generate URLs based on the pattern used by our image resizer
+  // For cropped plaque images (containing "_plaque_"), use the original URL as-is
+  // since these are already properly sized individual plaque images
+  if (filename.includes('_plaque_')) {
+    return {
+      small: originalUrl,
+      medium: originalUrl,
+      large: originalUrl
+    };
+  }
+
+  // Generate URLs based on the pattern used by our image resizer for original full photos
   const baseUrl = 'https://storage.googleapis.com/csp-bucket/images/';
   
   // Extract the base filename without any size suffixes
