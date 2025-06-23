@@ -1,3 +1,3 @@
 module.exports = {
-    tableName: 'csp-plaques.plaques.plaques',
+    tableName: 'csp-plaques.plaques.plaque_data',
   };

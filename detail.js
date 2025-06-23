@@ -46,7 +46,7 @@ const detail = async (req, res) => {
 async function queryPlaqueById(id) {
     try {
         const queryOptions = {
-            query: `SELECT *, cropped_image_url, original_image_url FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
+            query: `SELECT * FROM \`${config.tableName}\` WHERE id = @id LIMIT 1`,
             params: {
                 id: id
             }
@@ -68,19 +68,47 @@ async function queryPlaqueById(id) {
             text: row.plaque_text || "No text available",
             confidence: row.confidence || 0,
             location: {
-                latitude: row.latitude,
-                longitude: row.longitude,
-                confidence: row.location_confidence
+                // Use projected location if available, otherwise fall back to calculated/camera location
+                latitude: row.projected_latitude || row.latitude,
+                longitude: row.projected_longitude || row.longitude,
+                confidence: row.location_confidence,
+                // Include original plaque location for reference
+                original_latitude: row.latitude,
+                original_longitude: row.longitude,
+                // Include projected location explicitly
+                projected_latitude: row.projected_latitude,
+                projected_longitude: row.projected_longitude
             },
             photo: {
                 id: row.photo_id,
-                url: row.cropped_image_url || row.image_url,
+                url: row.plaque_image_url || row.cropped_image_url || row.image_url,
                 cropped_url: row.cropped_image_url,
                 original_url: row.original_image_url || row.image_url,
+                plaque_url: row.plaque_image_url,
                 camera_position: {
                     latitude: row.camera_latitude,
                     longitude: row.camera_longitude,
                     bearing: row.camera_bearing
+                },
+                // EXIF metadata (new)
+                exif_data: {
+                    gps: row.exif_latitude && row.exif_longitude ? {
+                        latitude: row.exif_latitude,
+                        longitude: row.exif_longitude,
+                        altitude: row.exif_altitude,
+                        bearing: row.exif_bearing
+                    } : null,
+                    camera: {
+                        make: row.camera_make,
+                        model: row.camera_model,
+                        device_orientation: row.exif_device_orientation,
+                        focal_length_mm: row.focal_length_mm
+                    },
+                    image: {
+                        width: row.image_width,
+                        height: row.image_height,
+                        capture_timestamp: row.capture_timestamp
+                    }
                 }
             },
             position_in_image: {
@@ -89,6 +117,36 @@ async function queryPlaqueById(id) {
             },
             estimated_distance: row.estimated_distance,
             offset_direction: row.offset_direction,
+            
+            // YOLO detection data (new)
+            yolo_detection: {
+                bbox: row.yolo_bbox_x1 !== null ? {
+                    x1: row.yolo_bbox_x1,
+                    y1: row.yolo_bbox_y1,
+                    x2: row.yolo_bbox_x2,
+                    y2: row.yolo_bbox_y2
+                } : null,
+                confidence: row.yolo_confidence,
+                dimensions: row.plaque_width && row.plaque_height ? {
+                    width: row.plaque_width,
+                    height: row.plaque_height,
+                    aspect_ratio: row.plaque_aspect_ratio
+                } : null
+            },
+            
+            // OCR consensus data (new)
+            ocr_analysis: {
+                method: row.ocr_method,
+                consensus_score: row.ocr_consensus_score,
+                services_used: row.ocr_services_used || [],
+                processing_time: row.ocr_processing_time,
+                timestamp: row.ocr_timestamp,
+                agreement_matrix: row.ocr_agreement_matrix ? (() => {
+                    try { return JSON.parse(row.ocr_agreement_matrix); }
+                    catch(e) { return null; }
+                })() : null
+            },
+            
             // Add cropping coordinates if available
             cropping_coordinates: row.cropping_x !== null && row.cropping_y !== null && 
                                  row.cropping_width !== null && row.cropping_height !== null ? {
@@ -98,38 +156,26 @@ async function queryPlaqueById(id) {
                 height: row.cropping_height
             } : null,
             
-            // Add extractor metadata
+            // Add extractor metadata (legacy)
             extractor_type: row.extractor_type,
             confidence_level: row.confidence_level,
             agreement_count: row.agreement_count,
             total_services: row.total_services,
             services_agreed: row.services_agreed ? row.services_agreed.split(',') : null,
             
-            // Add individual extractor results
+            // Individual service results (Tesseract removed for better quality)
             individual_extractions: {
-                claude: {
-                    text: row.claude_text,
-                    confidence: row.claude_confidence,
-                    raw_result: row.claude_result ? (() => {
-                        try { return JSON.parse(row.claude_result); } 
-                        catch(e) { return null; }
-                    })() : null
-                },
                 openai: {
                     text: row.openai_text,
-                    confidence: row.openai_confidence,
-                    raw_result: row.openai_result ? (() => {
-                        try { return JSON.parse(row.openai_result); } 
-                        catch(e) { return null; }
-                    })() : null
+                    confidence: row.openai_confidence
                 },
-                gemini: {
-                    text: row.gemini_text,
-                    confidence: row.gemini_confidence,
-                    raw_result: row.gemini_result ? (() => {
-                        try { return JSON.parse(row.gemini_result); } 
-                        catch(e) { return null; }
-                    })() : null
+                claude: {
+                    text: row.claude_text,
+                    confidence: row.claude_confidence
+                },
+                google_vision: {
+                    text: row.google_vision_text,
+                    confidence: row.google_vision_confidence
                 }
             }
         }));
